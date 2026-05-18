@@ -1,0 +1,39 @@
+{
+  "pluginAlias": "Bold",
+  "pluginType": "platform",
+  "headerDisplay": "Bold Smart Locks. A Bold Connect hub is required.",
+  "footerDisplay": "Use the authentication website (https://stefannienhuis.github.io/homebridge-bold/) to get your access & refresh tokens.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "accessToken": {
+        "title": "Access Token",
+        "type": "string",
+        "description": "Access token for the Bold API."
+      },
+      "refreshToken": {
+        "title": "Refresh Token",
+        "type": "string",
+        "description": "Refresh token for the Bold API."
+      },
+      "refreshURL": {
+        "title": "Custom Refresh URL (optional)",
+        "type": "string",
+        "description": "Custom refresh URL for token refreshing. Use this only if you authenticated with a custom backend."
+      },
+      "legacyAuthentication": {
+        "title": "Legacy Authentication",
+        "type": "boolean",
+        "default": false,
+        "description": "Switch between default and legacy authentication."
+      },
+      "showControllerAsLock": {
+        "title": "Show Bold Connect as Lock",
+        "type": "boolean",
+        "default": false,
+        "description": "Show the Bold Connect hub as a lock instead of a switch."
+      }
+    },
+    "required": ["accessToken", "refreshToken"]
+  }
+}

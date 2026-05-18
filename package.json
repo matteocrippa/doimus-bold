@@ -1,0 +1,16 @@
+{
+  "name": "doimus-bold",
+  "version": "1.0.0",
+  "description": "Doimus plugin for Bold Smart Locks",
+  "license": "MIT",
+  "author": "Matteo Crippa",
+  "main": "index.js",
+  "doimus": {
+    "plugin": true,
+    "type": "native"
+  },
+  "dependencies": {
+    "axios": "^1.0.0",
+    "form-data": "^4.0.0"
+  }
+}
