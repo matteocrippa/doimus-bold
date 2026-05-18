@@ -33,6 +33,10 @@ Bold Connect hubs expose:
 |------------|-------------|
 | `on` | `true` when activated |
 
+## Credits
+
+This plugin is a port of [homebridge-bold](https://github.com/StefanNienhuis/homebridge-bold) by [Stefan Nienhuis](https://github.com/StefanNienhuis). Thanks to Erik Nienhuis for reverse-engineering the Bold API.
+
 ## License
 
 MIT
