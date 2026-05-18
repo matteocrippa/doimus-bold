@@ -102,23 +102,32 @@ async function syncDevices(cfg, api) {
     if (tokens) {
       cfg.accessToken = tokens.accessToken;
       cfg.refreshToken = tokens.refreshToken;
+    } else {
+      api.log("warn", "Token refresh returned nothing; using existing tokens");
     }
   } catch (e) {
-    api.log("warn", `Token refresh before sync failed: ${e.message}`);
+    api.log("error", `Token refresh failed: ${e.message}`);
   }
 
   let remoteDevices;
   try {
     remoteDevices = await bold.getDevices();
   } catch (e) {
-    api.log("error", `Device sync failed: ${e.message}`);
+    api.log("error", `Device sync failed: ${e.message}. Check that accessToken and refreshToken are valid.`);
+    return;
+  }
+
+  api.log("info", `Found ${remoteDevices.length} activatable Bold device(s)`);
+  if (remoteDevices.length === 0) {
+    api.log("warn", "No activatable devices found. Ensure locks are linked to a Bold Connect hub.");
     return;
   }
 
   const seen = new Set();
 
   for (const d of remoteDevices) {
-    const isSwitch = d.type?.id === 1 && !cfg.showControllerAsLock;
+    // DeviceType: Lock=1, Connect=2. Connect hub is shown as switch by default.
+    const isSwitch = d.type?.id === 2 && !cfg.showControllerAsLock;
     const did = isSwitch ? `bold-switch-${d.id}` : `bold-lock-${d.id}`;
     seen.add(did);
 
@@ -197,8 +206,8 @@ module.exports = {
       }
     });
 
-    syncDevices(cfg, api);
-    refreshTimer = setInterval(() => syncDevices(cfg, api), 24 * 60 * 60 * 1000);
+    syncDevices(cfg, api).catch((e) => api.log("error", `Initial sync error: ${e.message}`));
+    refreshTimer = setInterval(() => syncDevices(cfg, api).catch((e) => api.log("error", `Periodic sync error: ${e.message}`)), 24 * 60 * 60 * 1000);
     if (refreshTimer.unref) refreshTimer.unref();
   },
 
