@@ -33,6 +33,27 @@ Bold Connect hubs expose:
 |------------|-------------|
 | `on` | `true` when activated |
 
+## Official Bold API
+
+This plugin integrates with the Bold Smart Lock platform API. For reference when extending or debugging this plugin, see the official documentation:
+
+- [Bold Integration Guide](https://sesamsolutions.gitlab.io/public-documentation/integration/)
+- [Bold API Reference](https://apidoc.boldsmartlock.com)
+
+Key endpoints used by this plugin:
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/v1/effective-device-permissions` | GET | List accessible devices |
+| `/v1/devices/{id}/remote-activation` | POST | Unlock/activate a lock |
+| `/v2/oauth/token` | POST | OAuth token refresh (legacy flow) |
+
+Authentication requirements per the official docs:
+
+- Remote activation requires a `user`-level session with the `activate` scope
+- Tokens should be refreshed before expiration; always handle `401` responses
+- Organization-level sessions can use API keys (Basic Auth) but cannot activate locks directly
+
 ## Credits
 
 This plugin is a port of [homebridge-bold](https://github.com/StefanNienhuis/homebridge-bold) by [Stefan Nienhuis](https://github.com/StefanNienhuis). Thanks to Erik Nienhuis for reverse-engineering the Bold API.

@@ -6,7 +6,6 @@
   "author": "Matteo Crippa",
   "main": "index.js",
   "doimus": {
-    "plugin": true,
     "type": "native"
   },
   "dependencies": {
