@@ -103,7 +103,8 @@ async function refresh(cfg, api) {
     if (resp.data.access_token) {
       return { accessToken: resp.data.access_token, refreshToken: resp.data.refresh_token };
     }
-    api.log("error", `Legacy token refresh failed: ${JSON.stringify(resp.data)}`);
+    const logSafe = { ...resp.data, access_token: "***", refresh_token: "***" };
+    api.log("error", `Legacy token refresh failed: ${JSON.stringify(logSafe)}`);
     return null;
   }
 
