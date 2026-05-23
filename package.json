@@ -11,7 +11,7 @@
       "authorization_url": "https://stefannienhuis.github.io/homebridge-bold/",
       "token_url": "https://api.boldsmartlock.com/v2/oauth/token",
       "client_id": "BoldApp",
-      "client_secret": "pgJFgnGB87f9ednFiiHygCbf",
+      "client_secret_env": "BOLD_CLIENT_SECRET",
       "redirect_uri": "https://doimus.com/callback",
       "scopes": []
     }

@@ -6,7 +6,7 @@ const FormData = require("form-data");
 const API_BASE = "https://api.boldsmartlock.com";
 const DEFAULT_REFRESH_URL = "https://bold.nienhuisdevelopment.com/oauth/refresh";
 const LEGACY_CLIENT_ID = "BoldApp";
-const LEGACY_CLIENT_SECRET = "pgJFgnGB87f9ednFiiHygCbf";
+const LEGACY_CLIENT_SECRET = process.env.BOLD_CLIENT_SECRET || "";
 
 let bold = null;
 let devices = new Map();
