@@ -3,6 +3,10 @@
 const axios = require("axios");
 const FormData = require("form-data");
 
+function createLogger(api, prefix) {
+  return (level, msg) => api.log(level, `[${prefix}] ${msg}`);
+}
+
 const API_BASE = "https://api.boldsmartlock.com";
 const DEFAULT_REFRESH_URL =
   "https://bold.nienhuisdevelopment.com/oauth/refresh";
@@ -13,6 +17,7 @@ let bold = null;
 let devices = new Map();
 let refreshTimer = null;
 let savedApi = null;
+let log = null;
 
 /**
  * Resolve access + refresh tokens from OAuth SDK first, then fall back to config.
@@ -72,7 +77,7 @@ function createBoldAPI(cfg, api) {
   }
 
   async function getDevices() {
-    api.log("debug", "Fetching Bold devices...");
+    log("debug", "Fetching Bold devices...");
     const resp = await req("GET", "/v1/effective-device-permissions");
     if (!resp.success) throw new Error(`getDevices: ${resp.error.message}`);
     if (!Array.isArray(resp.data))
@@ -83,10 +88,10 @@ function createBoldAPI(cfg, api) {
   }
 
   async function activate(deviceId) {
-    api.log("debug", `Activating ${deviceId}...`);
+    log("debug", `Activating ${deviceId}...`);
     const resp = await req("POST", `/v1/devices/${deviceId}/remote-activation`);
     if (!resp.success && resp.error.code == 401) {
-      api.log("warn", "Token expired on activation; refreshing...");
+      log("warn", "Token expired on activation; refreshing...");
       const tokens = await refresh(cfg, api);
       if (tokens) {
         cfg.accessToken = tokens.accessToken;
@@ -96,7 +101,7 @@ function createBoldAPI(cfg, api) {
       return false;
     }
     if (!resp.success) {
-      api.log(
+      log(
         "error",
         `Activation failed for ${deviceId}: ${resp.error.message}`,
       );
@@ -110,7 +115,7 @@ function createBoldAPI(cfg, api) {
 
 async function refresh(cfg, api) {
   const tokens = resolveTokens(cfg, api);
-  api.log("debug", "Refreshing Bold access token...");
+  log("debug", "Refreshing Bold access token...");
 
   if (cfg.legacyAuthentication) {
     const fd = new FormData();
@@ -128,7 +133,7 @@ async function refresh(cfg, api) {
       };
     }
     const logSafe = { ...resp.data, access_token: "***", refresh_token: "***" };
-    api.log("error", `Legacy token refresh failed: ${JSON.stringify(logSafe)}`);
+    log("error", `Legacy token refresh failed: ${JSON.stringify(logSafe)}`);
     return null;
   }
 
@@ -138,7 +143,7 @@ async function refresh(cfg, api) {
     });
     const { accessToken, refreshToken } = resp.data.data;
     if (!accessToken || !refreshToken) {
-      api.log(
+      log(
         "error",
         `Invalid refresh response: ${JSON.stringify(resp.data)}`,
       );
@@ -146,7 +151,7 @@ async function refresh(cfg, api) {
     }
     return { accessToken, refreshToken };
   } catch (err) {
-    api.log("error", `Token refresh error: ${err.message}`);
+    log("error", `Token refresh error: ${err.message}`);
     return null;
   }
 }
@@ -158,26 +163,26 @@ async function syncDevices(cfg, api) {
       cfg.accessToken = tokens.accessToken;
       cfg.refreshToken = tokens.refreshToken;
     } else {
-      api.log("warn", "Token refresh returned nothing; using existing tokens");
+      log("warn", "Token refresh returned nothing; using existing tokens");
     }
   } catch (e) {
-    api.log("error", `Token refresh failed: ${e.message}`);
+    log("error", `Token refresh failed: ${e.message}`);
   }
 
   let remoteDevices;
   try {
     remoteDevices = await bold.getDevices();
   } catch (e) {
-    api.log(
+    log(
       "error",
       `Device sync failed: ${e.message}. Check that authentication is valid.`,
     );
     return;
   }
 
-  api.log("info", `Found ${remoteDevices.length} activatable Bold device(s)`);
+  log("info", `Found ${remoteDevices.length} activatable Bold device(s)`);
   if (remoteDevices.length === 0) {
-    api.log(
+    log(
       "warn",
       "No activatable devices found. Ensure locks are linked to a Bold Connect hub.",
     );
@@ -200,7 +205,7 @@ async function syncDevices(cfg, api) {
           capabilities: ["on"],
           state: { on: false },
         });
-        api.log("info", `Registered switch: ${d.name}`);
+        log("info", `Registered switch: ${d.name}`);
       } else {
         api.registerDevice({
           id: did,
@@ -209,7 +214,7 @@ async function syncDevices(cfg, api) {
           capabilities: ["locked", "active"],
           state: { locked: true, active: false },
         });
-        api.log("info", `Registered lock: ${d.name}`);
+        log("info", `Registered lock: ${d.name}`);
       }
       devices.set(did, { device: d, timer: null });
     } else {
@@ -220,7 +225,7 @@ async function syncDevices(cfg, api) {
   for (const [did] of devices) {
     if (!seen.has(did)) {
       devices.delete(did);
-      api.log("info", `Removed stale device: ${did}`);
+      log("info", `Removed stale device: ${did}`);
     }
   }
 }
@@ -228,6 +233,7 @@ async function syncDevices(cfg, api) {
 module.exports = {
   start(cfg, api) {
     savedApi = api;
+    log = createLogger(api, "Bold");
     bold = createBoldAPI(cfg, api);
 
     api.onCommand((deviceId, key, value) => {
@@ -270,12 +276,12 @@ module.exports = {
     });
 
     syncDevices(cfg, api).catch((e) =>
-      api.log("error", `Initial sync error: ${e.message}`),
+      log("error", `Initial sync error: ${e.message}`),
     );
     refreshTimer = setInterval(
       () =>
         syncDevices(cfg, api).catch((e) =>
-          api.log("error", `Periodic sync error: ${e.message}`),
+          log("error", `Periodic sync error: ${e.message}`),
         ),
       24 * 60 * 60 * 1000,
     );
