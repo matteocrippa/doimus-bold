@@ -251,20 +251,24 @@ module.exports = {
                   state.device.settings.activationTime * 1000,
                 );
               }
+            }).catch((error) => {
+              log("error", "Activation failed: " + error.message);
             });
           }
         } else {
           if (key === "locked") {
             if (!value) {
-              bold.activate(state.device.id).then((ok) => {
-                if (ok) {
-                  if (state.timer) clearTimeout(state.timer);
-                  state.timer = setTimeout(() => {
-                    api.updateDeviceState(did, { locked: true, active: false });
-                  }, state.device.settings.activationTime * 1000);
-                  api.updateDeviceState(did, { locked: false, active: true });
-                }
-              });
+            bold.activate(state.device.id).then((ok) => {
+              if (ok) {
+                if (state.timer) clearTimeout(state.timer);
+                state.timer = setTimeout(() => {
+                  api.updateDeviceState(did, { locked: true, active: false });
+                }, state.device.settings.activationTime * 1000);
+                api.updateDeviceState(did, { locked: false, active: true });
+              }
+            }).catch((error) => {
+              log("error", "Activation failed: " + error.message);
+            });
             } else {
               if (state.timer) clearTimeout(state.timer);
               api.updateDeviceState(did, { locked: true, active: false });
@@ -283,7 +287,7 @@ module.exports = {
         syncDevices(cfg, api).catch((e) =>
           log("error", `Periodic sync error: ${e.message}`),
         ),
-      24 * 60 * 60 * 1000,
+      cfg.syncInterval || 86400000,
     );
     if (refreshTimer.unref) refreshTimer.unref();
   },
