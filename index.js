@@ -43,6 +43,16 @@ function resolveTokens(cfg, api) {
 function createBoldAPI(cfg, api) {
   async function req(method, endpoint, body, headers) {
     const tokens = resolveTokens(cfg, api);
+    if (!tokens.accessToken) {
+      return {
+        success: false,
+        error: {
+          code: "NOT_AUTHENTICATED",
+          message:
+            "Bold plugin is not authenticated — complete the OAuth flow or set an access token in the plugin settings.",
+        },
+      };
+    }
     try {
       const resp = await axios.request({
         method,
