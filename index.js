@@ -1,8 +1,5 @@
 "use strict";
 
-const axios = require("axios");
-const FormData = require("form-data");
-
 function createLogger(api, prefix) {
   return (level, msg) => api.log(level, `[${prefix}] ${msg}`);
 }
@@ -10,8 +7,6 @@ function createLogger(api, prefix) {
 const API_BASE = "https://api.boldsmartlock.com";
 const DEFAULT_REFRESH_URL =
   "https://bold.nienhuisdevelopment.com/oauth/refresh";
-const LEGACY_CLIENT_ID = "BoldApp";
-const LEGACY_CLIENT_SECRET = process.env.BOLD_CLIENT_SECRET || "";
 
 let bold = null;
 let devices = new Map();
@@ -54,34 +49,24 @@ function createBoldAPI(cfg, api) {
       };
     }
     try {
-      const resp = await axios.request({
+      const resp = await fetch(`${API_BASE}${endpoint}`, {
         method,
-        url: `${API_BASE}${endpoint}`,
         headers: {
           Authorization: `Bearer ${tokens.accessToken}`,
           "Content-Type": "application/json",
           ...headers,
         },
-        data: body,
+        body: body ? JSON.stringify(body) : undefined,
       });
-      if (resp.data.errorCode && resp.data.errorCode !== "OK") {
+      const data = await resp.json();
+      if (data.errorCode && data.errorCode !== "OK") {
         return {
           success: false,
-          error: { code: resp.data.errorCode, message: resp.data.errorMessage },
+          error: { code: data.errorCode, message: data.errorMessage },
         };
       }
-      return { success: true, data: resp.data };
+      return { success: true, data };
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        return {
-          success: false,
-          error: {
-            code:
-              err.response?.data?.errorCode || err.response?.status || err.code,
-            message: err.response?.data?.errorMessage || `${err}`,
-          },
-        };
-      }
       return { success: false, error: { message: `${err}` } };
     }
   }
@@ -127,35 +112,18 @@ async function refresh(cfg, api) {
   const tokens = resolveTokens(cfg, api);
   log("debug", "Refreshing Bold access token...");
 
-  if (cfg.legacyAuthentication) {
-    const fd = new FormData();
-    fd.append("client_id", LEGACY_CLIENT_ID);
-    fd.append("client_secret", LEGACY_CLIENT_SECRET);
-    fd.append("refresh_token", tokens.refreshToken);
-    fd.append("grant_type", "refresh_token");
-    const resp = await axios.post(`${API_BASE}/v2/oauth/token`, fd, {
-      headers: fd.getHeaders(),
-    });
-    if (resp.data.access_token) {
-      return {
-        accessToken: resp.data.access_token,
-        refreshToken: resp.data.refresh_token,
-      };
-    }
-    const logSafe = { ...resp.data, access_token: "***", refresh_token: "***" };
-    log("error", `Legacy token refresh failed: ${JSON.stringify(logSafe)}`);
-    return null;
-  }
-
   try {
-    const resp = await axios.post(cfg.refreshURL || DEFAULT_REFRESH_URL, {
-      refreshToken: tokens.refreshToken,
+    const resp = await fetch(cfg.refreshURL || DEFAULT_REFRESH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: tokens.refreshToken }),
     });
-    const { accessToken, refreshToken } = resp.data.data;
+    const data = await resp.json();
+    const { accessToken, refreshToken } = data.data;
     if (!accessToken || !refreshToken) {
       log(
         "error",
-        `Invalid refresh response: ${JSON.stringify(resp.data)}`,
+        `Invalid refresh response: ${JSON.stringify(data)}`,
       );
       return null;
     }

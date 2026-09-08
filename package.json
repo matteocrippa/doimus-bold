@@ -16,8 +16,5 @@
       "scopes": []
     }
   },
-  "dependencies": {
-    "axios": "^1.0.0",
-    "form-data": "^4.0.0"
-  }
+  "dependencies": {}
 }
